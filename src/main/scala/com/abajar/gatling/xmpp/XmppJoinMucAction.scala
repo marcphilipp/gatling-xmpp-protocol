@@ -6,15 +6,16 @@ import io.gatling.core.session.Expression
 import io.gatling.core.validation.Validation
 import io.gatling.core.session.Session
 import io.gatling.core.util.TimeHelper._
-import io.gatling.core.result.message.{OK, KO, Status}
+import io.gatling.core.result.message.{KO, OK, Status}
 import io.gatling.core.result.writer.DataWriterClient
-import org.jivesoftware.smackx.muc.MultiUserChatManager
-import org.jivesoftware.smack.AbstractXMPPConnection
+import rocks.xmpp.addr.Jid
+import rocks.xmpp.core.session.XmppClient
+import rocks.xmpp.extensions.muc.MultiUserChatManager
 
 import scala.concurrent.Future
-import scala.util.{Success, Failure}
+import scala.util.{Failure, Success}
 
-class XmppJoinMucAction(requestName: Expression[String], val next: ActorRef, serviceName: Expression[String]) extends Interruptable with Failable {
+class XmppJoinMucAction(requestName: Expression[String], val next: ActorRef, roomName: Expression[String], domain: Expression[String]) extends Interruptable with Failable {
   override def executeOrFail(session: Session): Validation[_] = {
     def logResult(session: Session, requestName: String, status: Status, started: Long, ended: Long) {
       new DataWriterClient{}.writeRequestData(
@@ -28,34 +29,33 @@ class XmppJoinMucAction(requestName: Expression[String], val next: ActorRef, ser
       )
     }
 
-    def join(session: Session, requestName: String, serviceName: String) {
+    def join(session: Session, requestName: String, roomName: String, domain: String) {
       val start = nowMillis
       val join = Future {
-        val connection = session("connection").as[AbstractXMPPConnection]
-        val mucm = MultiUserChatManager.getInstanceFor(connection)
-        mucm.getMultiUserChat(serviceName).join("test" + start)
+        val xmppClient = session("xmppClient").as[XmppClient]
+        val mucm = xmppClient.getManager(classOf[MultiUserChatManager])
+        val service = mucm.createChatService(Jid.of(domain))
+        service.createRoom(roomName)
       }
 
-      val updatedSession = session.set("connection", null)
-
-      join.onComplete { 
-        case Success(connection) => {
+      join.onComplete {
+        case Success(room) =>
+          val updatedSession = session.set("room", room)
           val end = nowMillis
           logResult(updatedSession, requestName, OK, start, end)
           next ! updatedSession
-        }
-        case Failure(e) => {
+        case Failure(e) =>
           logger.error(e.getMessage)
           val end = nowMillis
-          logResult(updatedSession, requestName, KO, start, end)
-          next ! updatedSession 
-        }
+          logResult(session, requestName, KO, start, end)
+          next ! session
       }
     }
 
     for {
       requestName <- requestName(session)
-      serviceName <- serviceName(session)
-    } yield join(session, requestName, serviceName)
+      roomName <- roomName(session)
+      domain <- domain(session)
+    } yield join(session, requestName, roomName, domain)
   }
 }

@@ -6,12 +6,12 @@ import io.gatling.core.session.Expression
 import io.gatling.core.validation.Validation
 import io.gatling.core.session.Session
 import io.gatling.core.util.TimeHelper._
-import io.gatling.core.result.message.{OK, KO, Status}
+import io.gatling.core.result.message.{KO, OK, Status}
 import io.gatling.core.result.writer.DataWriterClient
-import org.jivesoftware.smack.AbstractXMPPConnection
+import rocks.xmpp.core.session.XmppClient
 
 import scala.concurrent.Future
-import scala.util.{Success, Failure}
+import scala.util.{Failure, Success}
 
 class XmppDisconnectAction(requestName: Expression[String], val next: ActorRef) extends Interruptable with Failable {
   override def executeOrFail(session: Session): Validation[_] = {
@@ -30,23 +30,21 @@ class XmppDisconnectAction(requestName: Expression[String], val next: ActorRef) 
     def disconnect(session: Session, requestName: String) {
       val start = nowMillis
       val disconnect = Future {
-        session("connection").as[AbstractXMPPConnection].disconnect()
+        session("xmppClient").as[XmppClient].close()
       }
 
-      val updatedSession = session.set("connection", null)
+      val updatedSession = session.set("xmppClient", null)
 
       disconnect.onComplete { 
-        case Success(_) => {
+        case Success(_) =>
           val end = nowMillis
           logResult(updatedSession, requestName, OK, start, end)
           next ! updatedSession
-        }
-        case Failure(e) => {
+        case Failure(e) =>
           logger.error(e.getMessage)
           val end = nowMillis
           logResult(updatedSession, requestName, KO, start, end)
-          next ! updatedSession 
-        }
+          next ! updatedSession
       }
     }
 

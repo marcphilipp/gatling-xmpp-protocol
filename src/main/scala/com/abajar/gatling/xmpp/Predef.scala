@@ -6,7 +6,7 @@ object Predef {
   val xmpp = XmppProtocolBuilder
 
   implicit def xmppBuilderToProtocol(builder: XmppProtocolBuilder): XmppProtocol = builder.build()
-  implicit def xmppBoshBuilderToProtocol(builder: XmppBoshProtocolBuilder): XmppProtocol = builder.build()
+  implicit def xmppWebSocketBuilderToProtocol(builder: XmppWebSocketProtocolBuilder): XmppProtocol = builder.build()
 
   def xmpp(requestName: Expression[String]) = new Xmpp(requestName)
 }

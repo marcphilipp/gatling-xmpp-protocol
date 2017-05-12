@@ -1,4 +1,5 @@
 import io.gatling.sbt.GatlingPlugin
+import sbt.Keys.libraryDependencies
 
 val scala_version = "2.11.4"
 val akka_version ="2.3.7"
@@ -26,8 +27,9 @@ lazy val root = (project in file(".")).
     libraryDependencies += akkaTest,
     libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.6" % "test",
     libraryDependencies += "org.scalamock" %% "scalamock-scalatest-support" % "3.2" % "test",
-    libraryDependencies += "org.igniterealtime.smack" % "smack-bosh" % "4.1.8",
-    libraryDependencies += "org.igniterealtime.smack" % "smack-extensions" % "4.1.8"
+    libraryDependencies += "rocks.xmpp" % "xmpp-websocket" % "0.7.4",
+    libraryDependencies += "rocks.xmpp" % "xmpp-extensions-client" % "0.7.4",
+    libraryDependencies += "org.slf4j" % "jul-to-slf4j" % "1.7.22"
   )
 
 enablePlugins(GatlingPlugin)

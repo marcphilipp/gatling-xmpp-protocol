@@ -6,9 +6,13 @@ object XmppProtocolBuilder {
 
 case class XmppProtocolBuilder(address: String, port: Int, domain: String) {
   def build() = XmppProtocol(address, port, domain)
-  def boshPath(path: String) = XmppBoshProtocolBuilder(address, port, domain, path) 
+  def webSocketPath(path: String) = XmppWebSocketProtocolBuilder(address, port, domain, path)
 }
 
-case class XmppBoshProtocolBuilder(address: String, port: Int, domain: String, path: String) {
-  def build() = new XmppBoshProtocol(address, port, domain, path)
+case class XmppWebSocketProtocolBuilder(address: String, port: Int, domain: String, path: String, var secure: Boolean = false) {
+  def secure(secure: Boolean): XmppWebSocketProtocolBuilder = {
+    this.secure = secure
+    this
+  }
+  def build() = new XmppWebSocketProtocol(address, port, domain, path, secure)
 }
